@@ -12,13 +12,15 @@ public sealed class CopilotUsageFetcherTests
         const string json = """
         {
           "copilot_plan": "pro",
-          "quota_snapshots": {
+            "quota_snapshots": {
             "premium_interactions": {
               "percent_remaining": 75,
+              "reset_after_seconds": 3600,
               "is_placeholder": false
             },
             "chat": {
               "percent_remaining": 40,
+              "reset_at": "2026-05-22T10:00:00Z",
               "is_placeholder": false
             }
           }
@@ -35,9 +37,11 @@ public sealed class CopilotUsageFetcherTests
         snapshot.Source.Should().Be("Api");
         snapshot.PrimaryWindow.Label.Should().Be("Premium");
         snapshot.PrimaryWindow.PercentUsed.Should().Be(25);
+        snapshot.PrimaryWindow.ResetAt.Should().NotBeNull();
         snapshot.SecondaryWindow.Should().NotBeNull();
         snapshot.SecondaryWindow!.Label.Should().Be("Chat");
         snapshot.SecondaryWindow.PercentUsed.Should().Be(60);
+        snapshot.SecondaryWindow.ResetAt.Should().Be(new DateTimeOffset(2026, 5, 22, 10, 0, 0, TimeSpan.Zero));
         snapshot.Message.Should().Be("Pro");
     }
 

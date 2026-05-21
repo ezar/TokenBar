@@ -59,6 +59,23 @@ public sealed class CliApplicationTests
         output.ToString().Should().Contain("primary=");
     }
 
+    [Fact]
+    public async Task RunAsyncUsageFormatsPercentWindowsAsUsagePercent()
+    {
+        using var output = new StringWriter();
+
+        var exitCode = await CliApplication.RunAsync(
+            ["usage"],
+            output,
+            CancellationToken.None,
+            () => [new PercentUsageProvider()]);
+
+        exitCode.Should().Be(0);
+        output.ToString().Should().Contain("primary=5h: 67% used");
+        output.ToString().Should().Contain("secondary=Weekly: 100% used");
+        output.ToString().Should().NotContain("5h: 67 tokens");
+    }
+
     private sealed class StubUsageProvider(string providerId) : IUsageProvider
     {
         public ProviderDescriptor Descriptor { get; } = new(
@@ -75,6 +92,28 @@ public sealed class CliApplicationTests
                 UsageWindow.FromUsedAndLimit("Today", 42, 0, null),
                 UsageWindow.FromUsedAndLimit("7 days", 100, 0, null),
                 "Api",
+                UsageStatus.Available,
+                DateTimeOffset.UnixEpoch,
+                Message: "test"));
+        }
+    }
+
+    private sealed class PercentUsageProvider : IUsageProvider
+    {
+        public ProviderDescriptor Descriptor { get; } = new(
+            ProviderId.Codex,
+            "Codex",
+            "#000000",
+            DefaultEnabled: true,
+            [ProviderSourceMode.Auto, ProviderSourceMode.OAuth]);
+
+        public Task<UsageSnapshot> FetchAsync(ProviderSourceMode sourceMode, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new UsageSnapshot(
+                ProviderId.Codex,
+                UsageWindow.FromUsedAndLimit("5h", 67, 100, null),
+                UsageWindow.FromUsedAndLimit("Weekly", 100, 100, null),
+                "OAuth",
                 UsageStatus.Available,
                 DateTimeOffset.UnixEpoch,
                 Message: "test"));

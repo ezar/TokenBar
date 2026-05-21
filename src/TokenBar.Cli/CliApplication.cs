@@ -95,6 +95,14 @@ public static class CliApplication
 
     private static string FormatUsageWindow(UsageWindow window)
     {
+        if (window.PercentUsed is not null)
+        {
+            var reset = window.ResetAt is null
+                ? string.Empty
+                : $" resets={window.ResetAt.Value.ToLocalTime():MMM d HH:mm}";
+            return $"{window.Label}: {window.PercentUsed:N0}% used{reset}";
+        }
+
         return window.Used is null
             ? window.Label
             : $"{window.Label}: {window.Used:N0} tokens";
