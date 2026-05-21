@@ -137,16 +137,35 @@
                                       Margin="0,12,0,0">
                                     <StackPanel Spacing="2">
                                         <TextBlock Classes="muted"
-                                                   Text="Primary" />
+                                                   Text="{Binding PrimaryLabel}" />
                                         <TextBlock Classes="metric"
-                                                   Text="{Binding Primary}" />
+                                                   Text="{Binding PrimaryValue}" />
+                                        <ProgressBar Minimum="0"
+                                                     Maximum="100"
+                                                     Value="{Binding PrimaryPercentUsed}"
+                                                     Height="6"
+                                                     Margin="0,4,14,0"
+                                                     IsVisible="{Binding HasPrimaryPercent}" />
+                                        <TextBlock Classes="muted"
+                                                   Text="{Binding PrimaryReset}"
+                                                   Margin="0,3,0,0" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="1"
-                                                Spacing="2">
+                                                Spacing="2"
+                                                IsVisible="{Binding HasSecondary}">
                                         <TextBlock Classes="muted"
-                                                   Text="Secondary" />
+                                                   Text="{Binding SecondaryLabel}" />
                                         <TextBlock Classes="metric"
-                                                   Text="{Binding Secondary}" />
+                                                   Text="{Binding SecondaryValue}" />
+                                        <ProgressBar Minimum="0"
+                                                     Maximum="100"
+                                                     Value="{Binding SecondaryPercentUsed}"
+                                                     Height="6"
+                                                     Margin="0,4,0,0"
+                                                     IsVisible="{Binding HasSecondaryPercent}" />
+                                        <TextBlock Classes="muted"
+                                                   Text="{Binding SecondaryReset}"
+                                                   Margin="0,3,0,0" />
                                     </StackPanel>
                                 </Grid>
                                 <TextBlock Grid.Row="2"

@@ -13,7 +13,9 @@ public sealed record TokenBarConfig(
             [
                 new ProviderConfig(ProviderId.Codex, true, ProviderSourceMode.Auto),
                 new ProviderConfig(ProviderId.Claude, true, ProviderSourceMode.Auto),
-                new ProviderConfig(ProviderId.Copilot, true, ProviderSourceMode.Auto)
+                new ProviderConfig(ProviderId.Copilot, true, ProviderSourceMode.Auto),
+                new ProviderConfig(ProviderId.OpenAIApi, false, ProviderSourceMode.Auto),
+                new ProviderConfig(ProviderId.AnthropicApi, false, ProviderSourceMode.Auto)
             ]);
     }
 }

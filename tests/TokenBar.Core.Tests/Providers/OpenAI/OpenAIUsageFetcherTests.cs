@@ -1,4 +1,5 @@
 using FluentAssertions;
+using TokenBar.Core.Providers;
 using TokenBar.Core.Providers.OpenAI;
 using TokenBar.Core.Usage;
 
@@ -36,11 +37,12 @@ public sealed class OpenAIUsageFetcherTests
         var fetcher = new OpenAIUsageFetcher(
             "sk-admin",
             new StubOpenAIApiClient(usageJson),
+            ProviderId.OpenAIApi,
             () => new DateTimeOffset(2026, 5, 20, 12, 0, 0, TimeSpan.Zero));
 
         var snapshot = await fetcher.FetchAsync(CancellationToken.None);
 
-        snapshot.ProviderId.Should().Be("codex");
+        snapshot.ProviderId.Should().Be("openai-api");
         snapshot.Source.Should().Be("Api");
         snapshot.Status.Should().Be(UsageStatus.Available);
         snapshot.PrimaryWindow.Label.Should().Be("Today");

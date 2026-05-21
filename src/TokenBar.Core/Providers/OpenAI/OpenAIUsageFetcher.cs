@@ -7,6 +7,7 @@ namespace TokenBar.Core.Providers.OpenAI;
 public sealed class OpenAIUsageFetcher(
     string token,
     IOpenAIApiClient apiClient,
+    string providerId = ProviderId.OpenAIApi,
     Func<DateTimeOffset>? now = null)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -53,7 +54,7 @@ public sealed class OpenAIUsageFetcher(
         }
 
         return new UsageSnapshot(
-            ProviderId.Codex,
+            providerId,
             UsageWindow.FromUsedAndLimit("Today", todayTokens, 0, null),
             UsageWindow.FromUsedAndLimit("7 days", sevenDayTokens, 0, null),
             "Api",

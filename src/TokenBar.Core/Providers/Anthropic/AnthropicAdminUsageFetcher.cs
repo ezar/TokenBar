@@ -7,6 +7,7 @@ namespace TokenBar.Core.Providers.Anthropic;
 public sealed class AnthropicAdminUsageFetcher(
     string adminKey,
     IAnthropicAdminApiClient apiClient,
+    string providerId = ProviderId.AnthropicApi,
     Func<DateTimeOffset>? now = null)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -46,7 +47,7 @@ public sealed class AnthropicAdminUsageFetcher(
         }
 
         return new UsageSnapshot(
-            ProviderId.Claude,
+            providerId,
             UsageWindow.FromUsedAndLimit("Today", todayTokens, 0, null),
             UsageWindow.FromUsedAndLimit("7 days", sevenDayTokens, 0, null),
             "Api",

@@ -77,6 +77,10 @@ public sealed class MainWindowViewModel(RefreshService refreshService, TokenBarC
             foreach (var snapshot in result.Snapshots)
             {
                 var message = snapshot.Message ?? string.Empty;
+                var primary = FormatUsageWindow(snapshot.PrimaryWindow, result.RefreshedAt.ToLocalTime());
+                var secondary = snapshot.SecondaryWindow is null
+                    ? FormattedUsageWindow.Empty
+                    : FormatUsageWindow(snapshot.SecondaryWindow, result.RefreshedAt.ToLocalTime());
                 Providers.Add(new ProviderRowViewModel(
                     snapshot.ProviderId,
                     ToDisplayName(snapshot.ProviderId),
@@ -84,8 +88,17 @@ public sealed class MainWindowViewModel(RefreshService refreshService, TokenBarC
                     snapshot.Status.ToString().ToLowerInvariant(),
                     ToStatusColor(snapshot.Status),
                     snapshot.Source,
-                    FormatUsageWindow(snapshot.PrimaryWindow),
-                    snapshot.SecondaryWindow is null ? string.Empty : FormatUsageWindow(snapshot.SecondaryWindow),
+                    primary.Label,
+                    primary.Value,
+                    primary.Reset,
+                    primary.PercentUsed,
+                    primary.HasPercent,
+                    secondary.Label,
+                    secondary.Value,
+                    secondary.Reset,
+                    secondary.PercentUsed,
+                    secondary.HasPercent,
+                    snapshot.SecondaryWindow is not null,
                     message,
                     !string.IsNullOrWhiteSpace(message)));
             }
@@ -123,11 +136,40 @@ public sealed class MainWindowViewModel(RefreshService refreshService, TokenBarC
         NextRefreshIn = $"Next refresh in {remaining:mm\\:ss}";
     }
 
-    private static string FormatUsageWindow(TokenBar.Core.Usage.UsageWindow window)
+    private static FormattedUsageWindow FormatUsageWindow(
+        TokenBar.Core.Usage.UsageWindow window,
+        DateTimeOffset now)
     {
-        return window.Used is null
-            ? window.Label
-            : $"{window.Label}: {window.Used:N0} tokens";
+        var value = window.PercentUsed is not null
+            ? $"{window.PercentUsed.Value:N0}% used"
+            : window.Used is null
+                ? "Unavailable"
+                : $"{window.Used:N0} tokens";
+
+        return new FormattedUsageWindow(
+            window.Label,
+            value,
+            FormatReset(window.ResetAt, now),
+            window.PercentUsed ?? 0,
+            window.PercentUsed is not null);
+    }
+
+    private static string FormatReset(DateTimeOffset? resetAt, DateTimeOffset now)
+    {
+        if (resetAt is null)
+        {
+            return string.Empty;
+        }
+
+        var localResetAt = resetAt.Value.ToLocalTime();
+        var remaining = localResetAt - now;
+        if (remaining > TimeSpan.Zero && remaining < TimeSpan.FromDays(1))
+        {
+            var hours = (int)Math.Floor(remaining.TotalHours);
+            return $"Resets in {hours} h {remaining.Minutes:00} min";
+        }
+
+        return $"Resets {localResetAt:MMM d HH:mm}";
     }
 
     private static string ToDisplayName(string providerId)
@@ -137,6 +179,8 @@ public sealed class MainWindowViewModel(RefreshService refreshService, TokenBarC
             "codex" => "Codex",
             "claude" => "Claude",
             "copilot" => "GitHub Copilot",
+            "openai-api" => "OpenAI API",
+            "anthropic-api" => "Anthropic API",
             _ => providerId
         };
     }
@@ -148,6 +192,8 @@ public sealed class MainWindowViewModel(RefreshService refreshService, TokenBarC
             "codex" => "#111827",
             "claude" => "#B85C38",
             "copilot" => "#1F883D",
+            "openai-api" => "#111827",
+            "anthropic-api" => "#B85C38",
             _ => "#4B5563"
         };
     }
@@ -166,5 +212,15 @@ public sealed class MainWindowViewModel(RefreshService refreshService, TokenBarC
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    private sealed record FormattedUsageWindow(
+        string Label,
+        string Value,
+        string Reset,
+        decimal PercentUsed,
+        bool HasPercent)
+    {
+        public static FormattedUsageWindow Empty { get; } = new(string.Empty, string.Empty, string.Empty, 0, false);
     }
 }

@@ -3,43 +3,42 @@ using TokenBar.Core.Usage;
 
 namespace TokenBar.Core.Providers.BuiltIn;
 
-internal sealed class AnthropicUsageProvider(
+internal sealed class ClaudeUsageProvider(
     ProviderDescriptor descriptor,
-    Func<string?> adminKeyProvider,
-    IAnthropicAdminApiClient apiClient,
-    Func<DateTimeOffset>? now = null) : IUsageProvider
+    Func<string?> tokenProvider,
+    IClaudeOAuthApiClient apiClient) : IUsageProvider
 {
     public ProviderDescriptor Descriptor { get; } = descriptor;
 
     public async Task<UsageSnapshot> FetchAsync(ProviderSourceMode sourceMode, CancellationToken cancellationToken)
     {
-        var adminKey = adminKeyProvider();
-        if (string.IsNullOrWhiteSpace(adminKey))
+        var token = tokenProvider();
+        if (string.IsNullOrWhiteSpace(token))
         {
             return new UsageSnapshot(
                 Descriptor.ProviderId,
-                UsageWindow.Unknown("Today"),
-                UsageWindow.Unknown("7 days"),
-                "Api",
+                UsageWindow.Unknown("Current session"),
+                UsageWindow.Unknown("Weekly limits"),
+                "OAuth",
                 UsageStatus.Stale,
                 DateTimeOffset.UtcNow,
-                Message: "Set ANTHROPIC_ADMIN_KEY to fetch Anthropic usage.");
+                Message: "Sign in with Claude Code or set CLAUDE_CODE_OAUTH_TOKEN to fetch Claude plan usage limits.");
         }
 
         try
         {
-            return await new AnthropicAdminUsageFetcher(adminKey, apiClient, Descriptor.ProviderId, now).FetchAsync(cancellationToken);
+            return await new ClaudeOAuthUsageFetcher(token, apiClient).FetchAsync(cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return new UsageSnapshot(
                 Descriptor.ProviderId,
-                UsageWindow.Unknown("Today"),
-                UsageWindow.Unknown("7 days"),
-                "Api",
+                UsageWindow.Unknown("Current session"),
+                UsageWindow.Unknown("Weekly limits"),
+                "OAuth",
                 UsageStatus.Stale,
                 DateTimeOffset.UtcNow,
-                Message: $"Anthropic Admin API unavailable: {ex.Message}");
+                Message: $"Claude OAuth usage unavailable: {ex.Message}");
         }
     }
 }

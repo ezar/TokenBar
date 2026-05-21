@@ -11,43 +11,50 @@ public static class BuiltInProviderFactory
     private static readonly Lazy<AppSettingsApiKeys> AppSettingsKeys = new(AppSettingsApiKeyStore.LoadDefault);
 
     public static IReadOnlyList<IUsageProvider> CreateProviders(
+        Func<CodexOAuthCredentials?>? codexOAuthCredentialsProvider = null,
+        Func<string?>? claudeOAuthTokenProvider = null,
         Func<string?>? openAITokenProvider = null,
         Func<string?>? anthropicAdminKeyProvider = null,
         Func<string?>? copilotTokenProvider = null,
+        ICodexOAuthApiClient? codexOAuthApiClient = null,
+        IClaudeOAuthApiClient? claudeOAuthApiClient = null,
         IOpenAIApiClient? openAIApiClient = null,
         IAnthropicAdminApiClient? anthropicAdminApiClient = null,
         ICopilotApiClient? copilotApiClient = null,
         Func<DateTimeOffset>? now = null)
     {
+        codexOAuthCredentialsProvider ??= GetCodexOAuthCredentials;
+        claudeOAuthTokenProvider ??= GetClaudeOAuthToken;
         openAITokenProvider ??= GetOpenAIToken;
         anthropicAdminKeyProvider ??= GetAnthropicAdminKey;
         copilotTokenProvider ??= GetCopilotToken;
+        codexOAuthApiClient ??= new CodexOAuthApiClient(CreateHttpClient());
+        claudeOAuthApiClient ??= new ClaudeOAuthApiClient(CreateHttpClient());
         openAIApiClient ??= new OpenAIApiClient(CreateHttpClient());
         anthropicAdminApiClient ??= new AnthropicAdminApiClient(CreateHttpClient());
         copilotApiClient ??= new CopilotApiClient(CreateHttpClient());
 
         return
         [
-            new OpenAIUsageProvider(
+            new CodexUsageProvider(
                 new ProviderDescriptor(
                     ProviderId.Codex,
                     "Codex",
                     "#111111",
                     DefaultEnabled: true,
-                    [ProviderSourceMode.Auto, ProviderSourceMode.Api]),
-                openAITokenProvider,
-                openAIApiClient,
+                    [ProviderSourceMode.Auto, ProviderSourceMode.OAuth, ProviderSourceMode.Cli]),
+                codexOAuthCredentialsProvider,
+                codexOAuthApiClient,
                 now),
-            new AnthropicUsageProvider(
+            new ClaudeUsageProvider(
                 new ProviderDescriptor(
                     ProviderId.Claude,
                     "Claude",
                     "#DA7756",
                     DefaultEnabled: true,
-                    [ProviderSourceMode.Auto, ProviderSourceMode.Api]),
-                anthropicAdminKeyProvider,
-                anthropicAdminApiClient,
-                now),
+                    [ProviderSourceMode.Auto, ProviderSourceMode.OAuth, ProviderSourceMode.Cli]),
+                claudeOAuthTokenProvider,
+                claudeOAuthApiClient),
             new CopilotUsageProvider(
                 new ProviderDescriptor(
                     ProviderId.Copilot,
@@ -56,8 +63,47 @@ public static class BuiltInProviderFactory
                     DefaultEnabled: true,
                     [ProviderSourceMode.Auto, ProviderSourceMode.Api]),
                 copilotTokenProvider,
-                copilotApiClient)
+                copilotApiClient),
+            new OpenAIUsageProvider(
+                new ProviderDescriptor(
+                    ProviderId.OpenAIApi,
+                    "OpenAI API",
+                    "#111111",
+                    DefaultEnabled: false,
+                    [ProviderSourceMode.Auto, ProviderSourceMode.Api]),
+                openAITokenProvider,
+                openAIApiClient,
+                now),
+            new AnthropicUsageProvider(
+                new ProviderDescriptor(
+                    ProviderId.AnthropicApi,
+                    "Anthropic API",
+                    "#DA7756",
+                    DefaultEnabled: false,
+                    [ProviderSourceMode.Auto, ProviderSourceMode.Api]),
+                anthropicAdminKeyProvider,
+                anthropicAdminApiClient,
+                now)
         ];
+    }
+
+    private static CodexOAuthCredentials? GetCodexOAuthCredentials()
+    {
+        var accessToken = Environment.GetEnvironmentVariable("CODEX_ACCESS_TOKEN")
+            ?? AppSettingsKeys.Value.CodexAccessToken;
+        var accountId = Environment.GetEnvironmentVariable("CODEX_ACCOUNT_ID")
+            ?? AppSettingsKeys.Value.CodexAccountId;
+
+        return string.IsNullOrWhiteSpace(accessToken)
+            ? CodexOAuthCredentialStore.TryReadDefaultCredentials()
+            : new CodexOAuthCredentials(accessToken, accountId);
+    }
+
+    private static string? GetClaudeOAuthToken()
+    {
+        return Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN")
+            ?? AppSettingsKeys.Value.ClaudeCodeOAuthToken
+            ?? ClaudeOAuthCredentialStore.TryReadDefaultAccessToken();
     }
 
     private static string? GetOpenAIToken()

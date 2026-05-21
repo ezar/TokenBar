@@ -3,43 +3,43 @@ using TokenBar.Core.Usage;
 
 namespace TokenBar.Core.Providers.BuiltIn;
 
-internal sealed class OpenAIUsageProvider(
+internal sealed class CodexUsageProvider(
     ProviderDescriptor descriptor,
-    Func<string?> tokenProvider,
-    IOpenAIApiClient apiClient,
+    Func<CodexOAuthCredentials?> credentialsProvider,
+    ICodexOAuthApiClient apiClient,
     Func<DateTimeOffset>? now = null) : IUsageProvider
 {
     public ProviderDescriptor Descriptor { get; } = descriptor;
 
     public async Task<UsageSnapshot> FetchAsync(ProviderSourceMode sourceMode, CancellationToken cancellationToken)
     {
-        var token = tokenProvider();
-        if (string.IsNullOrWhiteSpace(token))
+        var credentials = credentialsProvider();
+        if (credentials is null || string.IsNullOrWhiteSpace(credentials.AccessToken))
         {
             return new UsageSnapshot(
                 Descriptor.ProviderId,
-                UsageWindow.Unknown("Today"),
-                UsageWindow.Unknown("7 days"),
-                "Api",
+                UsageWindow.Unknown("5h"),
+                UsageWindow.Unknown("Weekly"),
+                "OAuth",
                 UsageStatus.Stale,
                 DateTimeOffset.UtcNow,
-                Message: "Set OPENAI_ADMIN_KEY or OPENAI_API_KEY to fetch OpenAI usage.");
+                Message: "Sign in with Codex CLI or set CODEX_ACCESS_TOKEN to fetch Codex usage limits.");
         }
 
         try
         {
-            return await new OpenAIUsageFetcher(token, apiClient, Descriptor.ProviderId, now).FetchAsync(cancellationToken);
+            return await new CodexOAuthUsageFetcher(credentials, apiClient, now).FetchAsync(cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return new UsageSnapshot(
                 Descriptor.ProviderId,
-                UsageWindow.Unknown("Today"),
-                UsageWindow.Unknown("7 days"),
-                "Api",
+                UsageWindow.Unknown("5h"),
+                UsageWindow.Unknown("Weekly"),
+                "OAuth",
                 UsageStatus.Stale,
                 DateTimeOffset.UtcNow,
-                Message: $"OpenAI Usage API unavailable: {ex.Message}");
+                Message: $"Codex OAuth usage unavailable: {ex.Message}");
         }
     }
 }

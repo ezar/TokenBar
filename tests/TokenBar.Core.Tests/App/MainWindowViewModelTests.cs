@@ -28,8 +28,39 @@ public sealed class MainWindowViewModelTests
         viewModel.Providers[0].ProviderId.Should().Be("codex");
         viewModel.Providers[0].DisplayName.Should().Be("Codex");
         viewModel.Providers[0].Status.Should().Be("available");
-        viewModel.Providers[0].Primary.Should().Be("Session");
+        viewModel.Providers[0].PrimaryLabel.Should().Be("Session");
+        viewModel.Providers[0].PrimaryValue.Should().Be("Unavailable");
         viewModel.Providers[0].Message.Should().Be("ready");
+    }
+
+    [Fact]
+    public async Task RefreshAsyncFormatsPercentUsageWindowsWithResetTimes()
+    {
+        var resetAt = new DateTimeOffset(2026, 5, 20, 12, 45, 0, TimeSpan.Zero);
+        var provider = new StubProvider(
+            "codex",
+            "Codex",
+            UsageWindow.FromUsedAndLimit("5h", 51, 100, resetAt),
+            UsageWindow.FromUsedAndLimit("Weekly", 97, 100, resetAt.AddDays(5)));
+        var registry = new ProviderRegistry([provider]);
+        var refreshService = new RefreshService(registry);
+        var config = new TokenBarConfig(
+            TimeSpan.FromMinutes(5),
+            [new ProviderConfig("codex", true, ProviderSourceMode.Auto)]);
+        var viewModel = new MainWindowViewModel(refreshService, config);
+
+        await viewModel.RefreshAsync(CancellationToken.None);
+
+        var row = viewModel.Providers[0];
+        row.PrimaryLabel.Should().Be("5h");
+        row.PrimaryValue.Should().Be("51% used");
+        row.PrimaryPercentUsed.Should().Be(51);
+        row.HasPrimaryPercent.Should().BeTrue();
+        row.PrimaryReset.Should().NotBeEmpty();
+        row.SecondaryLabel.Should().Be("Weekly");
+        row.SecondaryValue.Should().Be("97% used");
+        row.SecondaryPercentUsed.Should().Be(97);
+        row.HasSecondaryPercent.Should().BeTrue();
     }
 
     [Fact]
@@ -50,7 +81,11 @@ public sealed class MainWindowViewModelTests
         viewModel.NextRefreshIn.Should().Be("Next refresh in 01:30");
     }
 
-    private sealed class StubProvider(string providerId, string displayName) : IUsageProvider
+    private sealed class StubProvider(
+        string providerId,
+        string displayName,
+        UsageWindow? primaryWindow = null,
+        UsageWindow? secondaryWindow = null) : IUsageProvider
     {
         public ProviderDescriptor Descriptor { get; } = new(
             providerId,
@@ -63,8 +98,8 @@ public sealed class MainWindowViewModelTests
         {
             return Task.FromResult(new UsageSnapshot(
                 providerId,
-                UsageWindow.Unknown("Session"),
-                UsageWindow.Unknown("Weekly"),
+                primaryWindow ?? UsageWindow.Unknown("Session"),
+                secondaryWindow ?? UsageWindow.Unknown("Weekly"),
                 "Cli",
                 UsageStatus.Available,
                 DateTimeOffset.UnixEpoch,

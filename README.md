@@ -1,12 +1,14 @@
 # TokenBar
 
-TokenBar is a small .NET/Avalonia desktop app for checking AI provider usage from API data. It currently targets Windows, while keeping the core provider model portable for future Linux and macOS support.
+TokenBar is a small .NET/Avalonia desktop app for checking AI product quotas and API usage. It currently targets Windows, while keeping the core provider model portable for future Linux and macOS support.
 
 The first supported providers are:
 
-- Codex / OpenAI usage through the OpenAI Usage API.
-- Claude / Anthropic usage through the Anthropic Admin Usage API.
+- Codex product usage through Codex OAuth credentials.
+- Claude product usage through Claude Code OAuth credentials.
 - GitHub Copilot usage through the current Copilot API integration.
+- Optional OpenAI API usage through the OpenAI Usage API.
+- Optional Anthropic API usage through the Anthropic Admin Usage API.
 
 ## Project Structure
 
@@ -33,6 +35,9 @@ The recommended local setup is a root-level file named `appsettings.local.json`:
 {
   "TokenBar": {
     "ApiKeys": {
+      "CodexAccessToken": "codex-oauth-access-token",
+      "CodexAccountId": "optional-account-id",
+      "ClaudeCodeOAuthToken": "sk-ant-oat01-...",
       "OpenAIAdminKey": "sk-admin-...",
       "AnthropicAdminKey": "sk-ant-admin...",
       "GitHubCopilotToken": "..."
@@ -54,6 +59,9 @@ Environment variables are also supported and take priority over `appsettings.loc
 ```powershell
 [Environment]::SetEnvironmentVariable("OPENAI_ADMIN_KEY", "sk-admin-...", "User")
 [Environment]::SetEnvironmentVariable("ANTHROPIC_ADMIN_KEY", "sk-ant-admin...", "User")
+[Environment]::SetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN", "sk-ant-oat01-...", "User")
+[Environment]::SetEnvironmentVariable("CODEX_ACCESS_TOKEN", "...", "User")
+[Environment]::SetEnvironmentVariable("CODEX_ACCOUNT_ID", "optional-account-id", "User")
 [Environment]::SetEnvironmentVariable("GITHUB_COPILOT_TOKEN", "...", "User")
 ```
 
@@ -61,9 +69,29 @@ After setting user environment variables, restart Visual Studio, terminals, and 
 
 ## Getting The Keys
 
-### OpenAI
+### Codex
 
-Use an OpenAI Admin API key from the organization settings:
+For Codex product limits such as `5h`, `Weekly`, and credits, TokenBar reads OAuth credentials from the Codex CLI auth file:
+
+```text
+%USERPROFILE%\.codex\auth.json
+```
+
+You can also set `CODEX_ACCESS_TOKEN` and optionally `CODEX_ACCOUNT_ID`, but using the CLI auth file is preferred.
+
+### Claude
+
+For Claude product limits like `Current session` and `Weekly limits`, TokenBar reads OAuth credentials from Claude Code:
+
+```text
+%USERPROFILE%\.claude\.credentials.json
+```
+
+You can also set `CLAUDE_CODE_OAUTH_TOKEN`. This is different from an Anthropic Admin API key.
+
+### OpenAI API
+
+OpenAI API usage is separate from Codex product quota. To enable the optional `OpenAI API` provider, use an OpenAI Admin API key from the organization settings:
 
 ```text
 https://platform.openai.com/settings/organization/admin-keys
@@ -71,9 +99,9 @@ https://platform.openai.com/settings/organization/admin-keys
 
 A normal project API key may return `403 Forbidden` for organization usage endpoints. TokenBar prefers `OPENAI_ADMIN_KEY`, then falls back to `OPENAI_API_KEY`.
 
-### Anthropic
+### Anthropic API
 
-Use an Anthropic Admin API key. It is different from a normal Anthropic API key and normally starts with:
+Anthropic API usage is separate from Claude product quota. To enable the optional `Anthropic API` provider, use an Anthropic Admin API key. It is different from a normal Anthropic API key and normally starts with:
 
 ```text
 sk-ant-admin...
@@ -126,8 +154,9 @@ dotnet format TokenBar.sln --verify-no-changes
 
 ## Current Limitations
 
-- Usage limits are reported from provider APIs, not from local CLI logs.
-- OpenAI usage requires an organization/admin-capable key.
-- Anthropic usage requires an Admin API key.
+- Codex and Claude product quotas are currently OAuth-first.
+- CLI fallback for Codex and Claude is planned but not implemented yet.
+- Optional OpenAI API usage requires an organization/admin-capable key.
+- Optional Anthropic API usage requires an Admin API key.
 - Copilot token acquisition is manual for now.
 - Linux and macOS are future targets; the current desktop behavior is verified on Windows.

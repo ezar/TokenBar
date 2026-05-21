@@ -13,7 +13,7 @@ public static class AppSettingsApiKeyStore
 
     public static AppSettingsApiKeys LoadFromDirectories(IEnumerable<string> directories)
     {
-        var keys = new AppSettingsApiKeys(null, null, null);
+        var keys = new AppSettingsApiKeys(null, null, null, null, null, null);
 
         foreach (var directory in GetCandidateDirectories(directories))
         {
@@ -25,7 +25,7 @@ public static class AppSettingsApiKeyStore
 
     public static AppSettingsApiKeys LoadFromDirectory(string directory)
     {
-        var keys = new AppSettingsApiKeys(null, null, null);
+        var keys = new AppSettingsApiKeys(null, null, null, null, null, null);
 
         foreach (var fileName in SettingsFiles)
         {
@@ -52,7 +52,10 @@ public static class AppSettingsApiKeyStore
         return new AppSettingsApiKeys(
             FindString(source, "OPENAI_ADMIN_KEY", "OpenAIAdminKey", "OpenAIApiKey", "OpenAI"),
             FindString(source, "ANTHROPIC_ADMIN_KEY", "AnthropicAdminKey", "Anthropic"),
-            FindString(source, "GITHUB_COPILOT_TOKEN", "GitHubCopilotToken", "CopilotToken", "Copilot"));
+            FindString(source, "GITHUB_COPILOT_TOKEN", "GitHubCopilotToken", "CopilotToken", "Copilot"),
+            FindString(source, "CODEX_ACCESS_TOKEN", "CodexAccessToken"),
+            FindString(source, "CODEX_ACCOUNT_ID", "CodexAccountId"),
+            FindString(source, "CLAUDE_CODE_OAUTH_TOKEN", "ClaudeCodeOAuthToken", "ClaudeOAuthToken"));
     }
 
     private static AppSettingsApiKeys Merge(AppSettingsApiKeys baseKeys, AppSettingsApiKeys overrideKeys)
@@ -60,7 +63,10 @@ public static class AppSettingsApiKeyStore
         return new AppSettingsApiKeys(
             FirstNotBlank(overrideKeys.OpenAIAdminKey, baseKeys.OpenAIAdminKey),
             FirstNotBlank(overrideKeys.AnthropicAdminKey, baseKeys.AnthropicAdminKey),
-            FirstNotBlank(overrideKeys.GitHubCopilotToken, baseKeys.GitHubCopilotToken));
+            FirstNotBlank(overrideKeys.GitHubCopilotToken, baseKeys.GitHubCopilotToken),
+            FirstNotBlank(overrideKeys.CodexAccessToken, baseKeys.CodexAccessToken),
+            FirstNotBlank(overrideKeys.CodexAccountId, baseKeys.CodexAccountId),
+            FirstNotBlank(overrideKeys.ClaudeCodeOAuthToken, baseKeys.ClaudeCodeOAuthToken));
     }
 
     private static IReadOnlyList<string> GetCandidateDirectories(IEnumerable<string> directories)

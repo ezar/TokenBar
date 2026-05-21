@@ -17,7 +17,12 @@ public sealed class JsonConfigStoreTests
 
         config.RefreshInterval.Should().Be(TimeSpan.FromMinutes(5));
         config.Providers.Select(provider => provider.ProviderId)
-            .Should().Equal(ProviderId.Codex, ProviderId.Claude, ProviderId.Copilot);
+            .Should().Equal(
+                ProviderId.Codex,
+                ProviderId.Claude,
+                ProviderId.Copilot,
+                ProviderId.OpenAIApi,
+                ProviderId.AnthropicApi);
     }
 
     [Fact]
