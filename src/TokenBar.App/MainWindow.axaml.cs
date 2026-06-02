@@ -33,7 +33,9 @@ public partial class MainWindow : Window
         Closed += MainWindowClosed;
     }
 
-    private static MainWindowViewModel CreateDefaultViewModel()
+    public MainWindowViewModel ViewModel => viewModel;
+
+    internal static MainWindowViewModel CreateDefaultViewModel()
     {
         var config = TokenBarConfig.CreateDefault();
         var registry = new ProviderRegistry(BuiltInProviderFactory.CreateProviders());

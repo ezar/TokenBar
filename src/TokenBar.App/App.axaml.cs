@@ -8,6 +8,7 @@ namespace TokenBar.App;
 public partial class App : Application
 {
     private MainWindow? mainWindow;
+    private MiniWindow? miniWindow;
     private TrayIcon? trayIcon;
     private bool isQuitting;
 
@@ -23,18 +24,22 @@ public partial class App : Application
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             mainWindow = new MainWindow();
+            miniWindow = new MiniWindow(mainWindow.ViewModel);
             mainWindow.Closing += MainWindowClosing;
             desktop.MainWindow = mainWindow;
-            trayIcon = CreateTrayIcon(desktop, mainWindow);
+            trayIcon = CreateTrayIcon(desktop, mainWindow, miniWindow);
         }
 
         base.OnFrameworkInitializationCompleted();
     }
 
-    private TrayIcon CreateTrayIcon(IClassicDesktopStyleApplicationLifetime desktop, MainWindow window)
+    private TrayIcon CreateTrayIcon(IClassicDesktopStyleApplicationLifetime desktop, MainWindow window, MiniWindow mini)
     {
         var showItem = new NativeMenuItem("Mostrar TokenBar");
-        showItem.Click += (_, _) => ShowMainWindow(window);
+        showItem.Click += (_, _) => ShowMainWindow(window, mini);
+
+        var miniItem = new NativeMenuItem("Mostrar miniatura");
+        miniItem.Click += (_, _) => ShowMiniWindow(window, mini);
 
         var refreshItem = new NativeMenuItem("Actualizar ahora");
         refreshItem.Click += async (_, _) => await window.RefreshNowAsync(CancellationToken.None);
@@ -44,6 +49,8 @@ public partial class App : Application
         {
             isQuitting = true;
             trayIcon?.Dispose();
+            mini.ForceClose();
+            window.Close();
             desktop.Shutdown();
         };
 
@@ -52,6 +59,7 @@ public partial class App : Application
             Items =
             {
                 showItem,
+                miniItem,
                 refreshItem,
                 new NativeMenuItemSeparator(),
                 exitItem
@@ -65,7 +73,7 @@ public partial class App : Application
             Menu = menu,
             IsVisible = true
         };
-        icon.Clicked += (_, _) => ShowMainWindow(window);
+        icon.Clicked += (_, _) => ShowMiniWindow(window, mini);
 
         return icon;
     }
@@ -85,5 +93,17 @@ public partial class App : Application
     {
         window.Show();
         window.Activate();
+    }
+
+    private static void ShowMainWindow(MainWindow window, MiniWindow mini)
+    {
+        mini.Hide();
+        ShowMainWindow(window);
+    }
+
+    private static void ShowMiniWindow(MainWindow window, MiniWindow mini)
+    {
+        window.Hide();
+        mini.ShowAtBottomRight();
     }
 }
